@@ -12,23 +12,28 @@ import com.example.identity_service.repository.UserRepostitory;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UserService {
-    @Autowired
-    UserRepostitory userRepostitory;
 
-    @Autowired
+    UserRepostitory userRepostitory;
     UserMapper userMapper;
+    PasswordEncoder passwordEncoder;
 
     public User createUser(UserCreationRequest request) {
         if(userRepostitory.existsByUsername(request.getUsername())) {
@@ -36,21 +41,32 @@ public class UserService {
         }
 
         User user = userMapper.toUser(request);
-        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         HashSet<String> roles = new HashSet<>();
         roles.add(Role.USER.name());
-        user.setRoles(roles);
+        //user.setRoles(roles);
 
         return userRepostitory.save(user);
     }
 
-    public List<User> getUsers() {
-        return userRepostitory.findAll();
+    public UserResponse getMyInfo() {
+        var context = SecurityContextHolder.getContext();
+        String username = context.getAuthentication().getName();
+        User user = userRepostitory.findByUsername(username).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
+        return userMapper.toUserReponse(user);
+
     }
 
-    public UserResponse getUsers(String id) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<UserResponse> getUsers() {
+        log.info("In method get user");
+        return userRepostitory.findAll().stream()
+                .map(userMapper::toUserReponse).toList();
+    }
+
+    @PostAuthorize("returnObject.username == authentication.name")
+    public UserResponse getUser(String id) {
         return userMapper.toUserReponse(userRepostitory.findById(id).orElseThrow(() -> new RuntimeException("User not found")));
     }
 
