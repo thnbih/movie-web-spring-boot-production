@@ -37,7 +37,7 @@ public class UserService {
     PasswordEncoder passwordEncoder;
     RoleRepository roleRepository;
 
-    public User createUser(UserCreationRequest request) {
+    public UserResponse createUser(UserCreationRequest request) {
         if(userRepostitory.existsByUsername(request.getUsername())) {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
@@ -49,7 +49,7 @@ public class UserService {
         roles.add(Role.USER.name());
         //user.setRoles(roles);
 
-        return userRepostitory.save(user);
+        return userMapper.toUserReponse(userRepostitory.save(user));
     }
 
     public UserResponse getMyInfo() {
