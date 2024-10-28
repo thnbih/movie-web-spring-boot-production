@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Optional;
 
 import com.example.identity_service.constant.PredefinedRole;
+import com.example.identity_service.mapper.ProfileMapper;
+import com.example.identity_service.repository.httpClient.ProfileClient;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -37,6 +39,9 @@ public class UserService {
     UserMapper userMapper;
     PasswordEncoder passwordEncoder;
     RoleRepository roleRepository;
+    ProfileClient profileClient;
+    ProfileMapper profileMapper;
+
 
     public UserResponse createUser(UserCreationRequest request) {
         if (userRepostitory.existsByUsername(request.getUsername())) {
@@ -50,11 +55,13 @@ public class UserService {
         Role userRole = roleRepository.findById(PredefinedRole.USER_ROLE).orElseThrow(() -> new AppException(ErrorCode.INVALID_ROLE));
         roles.add(userRole);
         user.setRoles(roles);
+        user = userRepostitory.save(user);
+        var profileRequest = profileMapper.toProfileCreationrequest(request);
+        profileRequest.setUserId(user.getId());
+         profileClient.createProfile(profileRequest);
 
 
-
-
-        return userMapper.toUserReponse(userRepostitory.save(user));
+        return userMapper.toUserReponse(user);
     }
 
     public UserResponse getMyInfo() {
