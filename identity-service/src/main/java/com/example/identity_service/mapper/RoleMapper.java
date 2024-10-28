@@ -1,10 +1,11 @@
 package com.example.identity_service.mapper;
 
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+
 import com.example.identity_service.dto.request.RoleRequest;
 import com.example.identity_service.dto.response.RoleResponse;
 import com.example.identity_service.entiy.Role;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface RoleMapper {
