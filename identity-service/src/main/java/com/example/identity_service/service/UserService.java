@@ -2,7 +2,9 @@ package com.example.identity_service.service;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 
+import com.example.identity_service.constant.PredefinedRole;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,7 +15,7 @@ import com.example.identity_service.dto.request.UserCreationRequest;
 import com.example.identity_service.dto.request.UserUpdateRequest;
 import com.example.identity_service.dto.response.UserResponse;
 import com.example.identity_service.entiy.User;
-import com.example.identity_service.enums.Role;
+import com.example.identity_service.entiy.Role;
 import com.example.identity_service.exception.AppException;
 import com.example.identity_service.exception.ErrorCode;
 import com.example.identity_service.mapper.UserMapper;
@@ -44,9 +46,13 @@ public class UserService {
         User user = userMapper.toUser(request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        HashSet<String> roles = new HashSet<>();
-        roles.add(Role.USER.name());
-        // user.setRoles(roles);
+        HashSet<Role> roles = new HashSet<>();
+        Role userRole = roleRepository.findById(PredefinedRole.USER_ROLE).orElseThrow(() -> new AppException(ErrorCode.INVALID_ROLE));
+        roles.add(userRole);
+        user.setRoles(roles);
+
+
+
 
         return userMapper.toUserReponse(userRepostitory.save(user));
     }
