@@ -2,27 +2,28 @@ package com.example.identity_service.service;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 
-import com.example.identity_service.constant.PredefinedRole;
-import com.example.identity_service.mapper.ProfileMapper;
-import com.example.identity_service.repository.httpClient.ProfileClient;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import com.example.identity_service.constant.PredefinedRole;
 import com.example.identity_service.dto.request.UserCreationRequest;
 import com.example.identity_service.dto.request.UserUpdateRequest;
 import com.example.identity_service.dto.response.UserResponse;
-import com.example.identity_service.entiy.User;
 import com.example.identity_service.entiy.Role;
+import com.example.identity_service.entiy.User;
 import com.example.identity_service.exception.AppException;
 import com.example.identity_service.exception.ErrorCode;
+import com.example.identity_service.mapper.ProfileMapper;
 import com.example.identity_service.mapper.UserMapper;
 import com.example.identity_service.repository.RoleRepository;
 import com.example.identity_service.repository.UserRepostitory;
+import com.example.identity_service.repository.httpClient.ProfileClient;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +43,6 @@ public class UserService {
     ProfileClient profileClient;
     ProfileMapper profileMapper;
 
-
     public UserResponse createUser(UserCreationRequest request) {
         if (userRepostitory.existsByUsername(request.getUsername())) {
             throw new AppException(ErrorCode.USER_EXISTED);
@@ -52,14 +52,18 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         HashSet<Role> roles = new HashSet<>();
-        Role userRole = roleRepository.findById(PredefinedRole.USER_ROLE).orElseThrow(() -> new AppException(ErrorCode.INVALID_ROLE));
+        Role userRole = roleRepository
+                .findById(PredefinedRole.USER_ROLE)
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_ROLE));
         roles.add(userRole);
         user.setRoles(roles);
         user = userRepostitory.save(user);
         var profileRequest = profileMapper.toProfileCreationrequest(request);
         profileRequest.setUserId(user.getId());
-         profileClient.createProfile(profileRequest);
-
+        ServletRequestAttributes servletRequestAttributes =
+                (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        var authHeader = servletRequestAttributes.getRequest().getHeader("Authorization");
+        profileClient.createProfile(profileRequest);
 
         return userMapper.toUserReponse(user);
     }

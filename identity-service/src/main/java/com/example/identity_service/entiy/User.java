@@ -1,6 +1,5 @@
 package com.example.identity_service.entiy;
 
-import java.time.LocalDate;
 import java.util.Set;
 
 import jakarta.persistence.*;

@@ -1,10 +1,9 @@
 package com.example.identity_service.dto.request;
 
-import com.example.identity_service.validator.DobConstraint;
+import java.time.LocalDate;
+
 import lombok.*;
 import lombok.experimental.FieldDefaults;
-
-import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
