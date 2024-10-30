@@ -3,20 +3,20 @@ package com.example.identity_service.service;
 import java.text.ParseException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Date;
-import java.util.StringJoiner;
-import java.util.UUID;
+import java.util.*;
 
+import com.example.identity_service.constant.PredefinedRole;
+import com.example.identity_service.dto.request.*;
+import com.example.identity_service.entiy.Role;
+import com.example.identity_service.repository.httpClient.OutboundIdentityClient;
+import com.example.identity_service.repository.httpClient.OutboundUserClient;
+import com.example.identity_service.repository.httpClient.ProfileClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import com.example.identity_service.dto.request.AuthenticationRequest;
-import com.example.identity_service.dto.request.IntroSpectRequest;
-import com.example.identity_service.dto.request.LogoutRequest;
-import com.example.identity_service.dto.request.RefreshTokenRequest;
 import com.example.identity_service.dto.response.AuthenticationResponse;
 import com.example.identity_service.dto.response.IntrospectResponse;
 import com.example.identity_service.dto.response.RefreshTokenResponse;
@@ -45,6 +45,9 @@ import lombok.extern.slf4j.Slf4j;
 public class AuthenticationService {
     UserRepostitory userRepostitory;
     InvalidatedTokenRepository invalidatedTokenRepository;
+    OutboundIdentityClient outboundIdentityClient;
+    OutboundUserClient outboundUserClient;
+    ProfileClient profileClient;
 
     @NonFinal
     @Value("${jwt.signerKey}")
@@ -58,6 +61,22 @@ public class AuthenticationService {
     @Value("${jwt.refreshable-duration}")
     protected long REFRESHABLE_DURATION;
 
+    @NonFinal
+    @Value("${google.clientId}")
+    protected String CLIENT_ID;
+
+
+    @NonFinal
+    @Value("${google.clientSecret}")
+    protected String CLIENT_SECRET;
+
+    @NonFinal
+    @Value("${google.redirectUri}")
+    protected String REDIRECT_URI;
+
+    @NonFinal
+    protected final String GRANT_TYPE = "authorization_code";
+
     public IntrospectResponse introspect(IntroSpectRequest request) throws JOSEException, ParseException {
         var token = request.getToken();
 
@@ -69,6 +88,41 @@ public class AuthenticationService {
         }
 
         return IntrospectResponse.builder().valid(isValid).build();
+    }
+
+    public AuthenticationResponse outboundAuthenticate(String code) {
+        var response = outboundIdentityClient.exchangeToken(ExchangeTokenRequest.builder()
+                .code(code)
+                .clientId(CLIENT_ID)
+                .clientSecret(CLIENT_SECRET)
+                .redirectUri(REDIRECT_URI)
+                .grantType(GRANT_TYPE)
+                .build());
+
+
+        Set<Role> roles = new HashSet<>();
+        roles.add(Role.builder().name(PredefinedRole.USER_ROLE).build());
+
+        var userInfo = outboundUserClient.getUserInfo("json", response.getAccessToken());
+
+
+        var user = userRepostitory.findByUsername(userInfo.getEmail()).orElseGet(() -> {
+            profileClient.createProfile(ProfileCreationRequest.builder()
+                    .firstName(userInfo.getGivenName())
+                    .lastName(userInfo.getFamilyName())
+                    .build());
+            return userRepostitory.save(User.builder()
+                    .username(userInfo.getEmail())
+                    .roles(roles)
+                    .build());
+            }
+
+        );
+
+        var token = generateToken(user);
+        return AuthenticationResponse.builder()
+                .token(token)
+                .build();
     }
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) {

@@ -3,6 +3,8 @@ package com.example.identity_service.service;
 import java.util.HashSet;
 import java.util.List;
 
+import com.example.event.dto.NotificationEvent;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -42,6 +44,7 @@ public class UserService {
     RoleRepository roleRepository;
     ProfileClient profileClient;
     ProfileMapper profileMapper;
+    KafkaTemplate<String, Object> kafkaTemplate;
 
     public UserResponse createUser(UserCreationRequest request) {
         if (userRepostitory.existsByUsername(request.getUsername())) {
@@ -58,12 +61,22 @@ public class UserService {
         roles.add(userRole);
         user.setRoles(roles);
         user = userRepostitory.save(user);
+        log.info("2");
         var profileRequest = profileMapper.toProfileCreationrequest(request);
         profileRequest.setUserId(user.getId());
         ServletRequestAttributes servletRequestAttributes =
                 (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         var authHeader = servletRequestAttributes.getRequest().getHeader("Authorization");
         profileClient.createProfile(profileRequest);
+        log.info("1");
+        NotificationEvent notificationEvent = NotificationEvent.builder()
+                .channel("EMAIL")
+                .recipient(request.getEmail())
+                .subject(request.getUsername())
+                .build();
+
+        log.info("Kafka Send Message: {}", notificationEvent);
+        kafkaTemplate.send("notification-delivery", notificationEvent);
 
         return userMapper.toUserReponse(user);
     }

@@ -12,7 +12,11 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
-
+  kafka:
+    bootstrap-servers: localhost:9094
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 jwt:
   signerKey: "2QbAyVf+5QAwTjONMGpHAI9pg+43vqXUT43MWqF50Z3lhOvGTzvphfikaeI33/sd"
   valid-duration: 3600
@@ -21,3 +25,8 @@ jwt:
 app:
   services:
     profile: http://localhost:8081/profile
+
+google:
+  clientId: "652210943582-mimqrnmes6ukon9n8jmqcdth4lj61lqf.apps.googleusercontent.com"
+  clientSecret: "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"
+  redirectUri: "http://localhost:3000/authenticate"
