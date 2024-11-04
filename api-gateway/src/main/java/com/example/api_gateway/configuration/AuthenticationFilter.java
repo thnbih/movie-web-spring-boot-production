@@ -44,7 +44,8 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
     @NonFinal
     private String[] publicEndPoints = {
             "/identity/auth/.*",
-            "/identity/users/registration"
+            "/identity/users/registration",
+            "/identity/users/updateInfo"
     };
 
     @Value("${app.api-prefix}")
@@ -54,28 +55,28 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
 
-        if(isPulicEndpoint(exchange.getRequest()))
+        if (isPulicEndpoint(exchange.getRequest()))
             return chain.filter(exchange);
 
         List<String> authHeader = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION);
-        if(CollectionUtils.isEmpty(authHeader)) {
+        if (CollectionUtils.isEmpty(authHeader)) {
             return unauthenticated(exchange.getResponse());
         }
 
         String token = authHeader.getFirst().replace("Bearer", "");
 
         return identiyService.introspect(token).flatMap(introspectResponse -> {
-            log.info("Result:{}",introspectResponse.getResult().isValid());
-            if(introspectResponse.getResult().isValid())
+            log.info("Result:{}", introspectResponse.getResult().isValid());
+            if (introspectResponse.getResult().isValid())
                 return chain.filter(exchange);
             else
                 return unauthenticated(exchange.getResponse());
-        }).onErrorResume(errors ->unauthenticated(exchange.getResponse()));
+        }).onErrorResume(errors -> unauthenticated(exchange.getResponse()));
 
     }
 
     private boolean isPulicEndpoint(ServerHttpRequest request) {
-        return Arrays.stream(publicEndPoints).anyMatch(s -> request.getURI().getPath().matches(apiPrefix +s));
+        return Arrays.stream(publicEndPoints).anyMatch(s -> request.getURI().getPath().matches(apiPrefix + s));
 
     }
 

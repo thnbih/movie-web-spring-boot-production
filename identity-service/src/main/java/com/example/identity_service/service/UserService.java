@@ -50,7 +50,9 @@ public class UserService {
         if (userRepostitory.existsByUsername(request.getUsername())) {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
-
+        if (userRepostitory.existsByEmail(request.getEmail())) {
+            throw new AppException(ErrorCode.EMAIL_EXISTED);
+        }
         User user = userMapper.toUser(request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
@@ -61,14 +63,13 @@ public class UserService {
         roles.add(userRole);
         user.setRoles(roles);
         user = userRepostitory.save(user);
-        log.info("2");
         var profileRequest = profileMapper.toProfileCreationrequest(request);
         profileRequest.setUserId(user.getId());
         ServletRequestAttributes servletRequestAttributes =
                 (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         var authHeader = servletRequestAttributes.getRequest().getHeader("Authorization");
         profileClient.createProfile(profileRequest);
-        log.info("1");
+
         NotificationEvent notificationEvent = NotificationEvent.builder()
                 .channel("EMAIL")
                 .recipient(request.getEmail())
@@ -93,7 +94,6 @@ public class UserService {
     @PreAuthorize("hasRole('ADMIN')")
     // @PreAuthorize("hasAuthority('APPROVE_POST')")
     public List<UserResponse> getUsers() {
-        log.info("In method get user");
         return userRepostitory.findAll().stream().map(userMapper::toUserReponse).toList();
     }
 
@@ -103,14 +103,19 @@ public class UserService {
                 userRepostitory.findById(id).orElseThrow(() -> new RuntimeException("User not found")));
     }
 
-    public UserResponse updateUser(String userId, UserUpdateRequest request) {
-        User user = userRepostitory.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+
+    public UserResponse updateUser(UserUpdateRequest request) {
+        String username = request.getUsername();
+        User user = userRepostitory.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
 
         userMapper.updateUser(user, request);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        var roles = roleRepository.findAllById(request.getRoles());
-        user.setRoles(new HashSet<>(roles));
+        if (request.getRoles() != null) {
+            var roles = roleRepository.findAllById(request.getRoles());
+            user.setRoles(new HashSet<>(roles));
+        }
+
         return userMapper.toUserReponse(userRepostitory.save(user));
     }
 

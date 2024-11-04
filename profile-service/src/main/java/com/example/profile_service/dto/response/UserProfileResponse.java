@@ -12,9 +12,11 @@ import java.time.LocalDate;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserProfileResponse {
     String id;
+    String userId;
     String firstName;
     String lastName;
     String email;
     LocalDate dob;
     String city;
+    String profilePic;
 }

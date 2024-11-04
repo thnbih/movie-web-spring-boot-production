@@ -33,5 +33,5 @@ build/
 .vscode/
 
 ### Mysql ###
-data_mysql/
+./data_mysql
 

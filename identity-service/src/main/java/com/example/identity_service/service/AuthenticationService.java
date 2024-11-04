@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
+import com.example.event.dto.NotificationEvent;
 import com.example.identity_service.constant.PredefinedRole;
 import com.example.identity_service.dto.request.*;
 import com.example.identity_service.entiy.Role;
@@ -12,6 +13,7 @@ import com.example.identity_service.repository.httpClient.OutboundIdentityClient
 import com.example.identity_service.repository.httpClient.OutboundUserClient;
 import com.example.identity_service.repository.httpClient.ProfileClient;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -77,6 +79,8 @@ public class AuthenticationService {
     @NonFinal
     protected final String GRANT_TYPE = "authorization_code";
 
+    KafkaTemplate<String, Object> kafkaTemplate;
+
     public IntrospectResponse introspect(IntroSpectRequest request) throws JOSEException, ParseException {
         var token = request.getToken();
 
@@ -104,28 +108,45 @@ public class AuthenticationService {
         roles.add(Role.builder().name(PredefinedRole.USER_ROLE).build());
 
         var userInfo = outboundUserClient.getUserInfo("json", response.getAccessToken());
+        boolean isRegister = false;
+        if (userRepostitory.existsByEmail(userInfo.getEmail())) {
+            isRegister = true;
+        }
 
+        User user = userRepostitory.findByEmail(userInfo.getEmail()).orElseGet(() -> {
 
-        var user = userRepostitory.findByUsername(userInfo.getEmail()).orElseGet(() -> {
-            profileClient.createProfile(ProfileCreationRequest.builder()
-                    .firstName(userInfo.getGivenName())
-                    .lastName(userInfo.getFamilyName())
-                    .build());
-            return userRepostitory.save(User.builder()
-                    .username(userInfo.getEmail())
-                    .roles(roles)
-                    .build());
-            }
+                    User newUser = userRepostitory.save(User.builder()
+                            .username(userInfo.getName())
+                            .email(userInfo.getEmail())
+                            .roles(roles)
+                            .build());
+                    profileClient.createProfile(ProfileCreationRequest.builder()
+                            .firstName(userInfo.getGivenName())
+                            .lastName(userInfo.getFamilyName())
+                            .userId(newUser.getId())
+                            .build());
+                    return newUser;
+                }
 
         );
+        NotificationEvent notificationEvent = NotificationEvent.builder()
+                .channel("EMAIL")
+                .recipient(userInfo.getEmail())
+                .subject(userInfo.getName())
+                .build();
 
+        if (!isRegister) {
+            kafkaTemplate.send("notification-delivery", notificationEvent);
+        }
         var token = generateToken(user);
         return AuthenticationResponse.builder()
                 .token(token)
+                .authenticated(true)
                 .build();
     }
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
+
         var user = userRepostitory
                 .findByUsername(request.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_EXISTED));
@@ -203,11 +224,11 @@ public class AuthenticationService {
 
         Date expiredTime = (isRefresh)
                 ? new Date(signedJWT
-                        .getJWTClaimsSet()
-                        .getIssueTime()
-                        .toInstant()
-                        .plus(REFRESHABLE_DURATION, ChronoUnit.SECONDS)
-                        .toEpochMilli())
+                .getJWTClaimsSet()
+                .getIssueTime()
+                .toInstant()
+                .plus(REFRESHABLE_DURATION, ChronoUnit.SECONDS)
+                .toEpochMilli())
                 : signedJWT.getJWTClaimsSet().getExpirationTime();
 
         var verified = signedJWT.verify(verifier);

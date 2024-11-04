@@ -25,6 +25,7 @@ public class UserController {
 
     @PostMapping("/registration")
     ApiResponse<UserResponse> createUser(@RequestBody @Valid UserCreationRequest request) {
+        log.info("1");
         var result = userService.createUser(request);
         return ApiResponse.<UserResponse>builder().result(result).build();
     }
@@ -45,10 +46,10 @@ public class UserController {
         return ApiResponse.<UserResponse>builder().result(result).build();
     }
 
-    @PutMapping("/{userId}")
-    ApiResponse<UserResponse> updateUser(
-            @PathVariable("userId") String userId, @RequestBody UserUpdateRequest request) {
-        var result = userService.updateUser(userId, request);
+    @PutMapping("/updateInfo")
+    ApiResponse<UserResponse> updateUser(@RequestBody UserUpdateRequest request) {
+        log.info("Request: {}", request);
+        var result = userService.updateUser(request);
         return ApiResponse.<UserResponse>builder().result(result).build();
     }
 

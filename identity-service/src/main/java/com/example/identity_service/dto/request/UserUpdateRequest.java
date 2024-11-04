@@ -5,6 +5,8 @@ import java.util.List;
 
 import com.example.identity_service.validator.DobConstraint;
 
+import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -14,12 +16,12 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserUpdateRequest {
+    @Size(min = 4, message = "USERNAME_INVALID")
+    String username;
+
+    @Size(min = 4, message = "PASSWORD_INVALID")
     String password;
-    String firstName;
-    String lastName;
 
-    @DobConstraint(min = 2, message = "INVALID_DOB")
-    LocalDate dob;
-
+    @Nullable
     List<String> roles;
 }

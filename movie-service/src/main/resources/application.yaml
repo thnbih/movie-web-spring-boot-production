@@ -1,0 +1,15 @@
+server:
+  port: 8083
+  servlet:
+    context-path: /movie
+spring:
+  application:
+    name: movie-service
+  data:
+    mongodb:
+      uri: mongodb+srv://anh:27092004@backenddb.2qdkr.mongodb.net/?retryWrites=true&w=majority&appName=BackendDB
+      database: movie-web
+
+app:
+  services:
+    identity: http://localhost:8080/identity
