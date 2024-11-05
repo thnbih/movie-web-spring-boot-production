@@ -3,6 +3,7 @@ package com.example.api_gateway.configuration;
 import com.example.api_gateway.repository.IdentityClient;
 
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
@@ -17,9 +18,9 @@ import java.util.List;
 @Configuration
 public class WebClientConfiguration {
     @Bean
-    WebClient webClient() {
+    WebClient webClient(@Value("${app.services.identity}") String url) {
         return WebClient.builder()
-                .baseUrl("http://localhost:8080/identity")
+                .baseUrl(url)
                 .build();
     }
 

@@ -73,7 +73,6 @@ public class UserProfileService {
         userProfileRepository.deleteById(id);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
     public List<UserProfileResponse> getAllProfiles() {
         var profiles = userProfileRepository.findAll();
         return profiles.stream().map(userProfileMapper::toUserProfileReponse).toList();
