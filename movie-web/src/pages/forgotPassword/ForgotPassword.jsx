@@ -16,7 +16,7 @@ const ForgotPassword = () => {
     const handleForgotPassWord = async(e) => {
         e.preventDefault();
         try {
-            const response = await axios.put(`http://${process.env.REACT_APP_GATEWAY_HOST}:${process.env.REACT_APP_GATEWAY_PORT}/api/v1/identity/users/updateInfo`, {username, password})
+            const response = await axios.put(`${process.env.REACT_APP_BACKEND_URL}/api/v1/identity/users/updateInfo`, {username, password})
             console.log(response);
             Toastify({
                 text: "Change password success",
@@ -83,15 +83,6 @@ const ForgotPassword = () => {
                             </p>
                         </div>
 
-                        <div className="register-link">
-                            <p>Continue with Google ?
-                                <a href="#">
-                                    <Link to="/loginAI">
-                                        Login
-                                    </Link>
-                                </a>
-                            </p>
-                        </div>
                     </form>
                 </div>
             </div>

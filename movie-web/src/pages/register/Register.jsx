@@ -17,7 +17,7 @@ export default function Register() {
         e.preventDefault();
 
         try {
-            const response = await axios.post(`http://${process.env.REACT_APP_GATEWAY_HOST}:${process.env.REACT_APP_GATEWAY_PORT}/api/v1/identity/users/registration`, { email, username, password });
+            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/v1/identity/users/registration`, { email, username, password });
             console.log(response);
             Toastify({
                 text: "Register Successfully",
@@ -96,15 +96,6 @@ export default function Register() {
                             <p>Have an account ?
                                 <a href="#">
                                     <Link to="/login">
-                                        Login
-                                    </Link>
-                                </a>
-                            </p>
-                        </div>
-                        <div className="register-link">
-                            <p>Continue with Google ?
-                                <a href="#">
-                                    <Link to="/loginAI">
                                         Login
                                     </Link>
                                 </a>
